@@ -14,7 +14,8 @@ async function initializeSupabase() {
                 for (const i of INTERVALS) {
                     const tableName = `${a}_${m}_${i}`;
                     const schema = `
-                        CREATE TABLE IF NOT EXISTS ${tableName} (
+                        DROP TABLE IF EXISTS ${tableName};
+                        CREATE TABLE ${tableName} (
                             id TEXT PRIMARY KEY,
                             timestamp BIGINT,
                             open DECIMAL(24, 12),
@@ -28,7 +29,7 @@ async function initializeSupabase() {
                             closepct DECIMAL(24, 12),
                             closevol DECIMAL(24, 12)
                         );
-                        CREATE INDEX IF NOT EXISTS idx_${tableName}_ts ON ${tableName}(timestamp DESC);
+                        CREATE INDEX idx_${tableName}_ts ON ${tableName}(timestamp DESC);
                     `;
                     process.stdout.write(`  → Creating ${tableName}... `);
                     await client.query(schema);
