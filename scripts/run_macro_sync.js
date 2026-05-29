@@ -99,6 +99,7 @@ async function processAndSaveData(client, tableName, klines) {
     
     const sarOffset = klines.length - sarResults.length;
     const sarOffset2 = klines.length - sarResults2.length;
+    const formattedValues = [];
 
     for (let i = 0; i < klines.length; i++) {
         const kline = klines[i];
@@ -136,15 +137,21 @@ async function processAndSaveData(client, tableName, klines) {
         }
 
         const id = `${tableName}_${kline.timestamp}`;
+        formattedValues.push(`('${id}', ${kline.timestamp}, ${kline.open}, ${kline.high}, ${kline.low}, ${kline.close}, ${closePts}, ${closePct}, ${kline.volume}, ${s1}, ${s2}, ${s3})`);
+    }
+
+    const chunkSize = 1000;
+    for (let i = 0; i < formattedValues.length; i += chunkSize) {
+        const chunk = formattedValues.slice(i, i + chunkSize);
         await client.query(`
             INSERT INTO ${tableName} (id, timestamp, open, high, low, closevalue, closepts, closepct, closevol, sar1, sar2, sar3)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+            VALUES ${chunk.join(',')}
             ON CONFLICT (id) DO UPDATE SET
                 open = EXCLUDED.open, high = EXCLUDED.high, low = EXCLUDED.low,
                 closevalue = EXCLUDED.closevalue, closepts = EXCLUDED.closepts,
                 closepct = EXCLUDED.closepct, closevol = EXCLUDED.closevol,
                 sar1 = EXCLUDED.sar1, sar2 = EXCLUDED.sar2, sar3 = EXCLUDED.sar3
-        `, [id, kline.timestamp, kline.open, kline.high, kline.low, kline.close, closePts, closePct, kline.volume, s1, s2, s3]);
+        `);
     }
     console.log(`  ✔ [Synced] ${tableName}`);
 }
