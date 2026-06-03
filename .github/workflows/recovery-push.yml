@@ -2,8 +2,8 @@ name: One-Time Sheet Recovery Push
 
 on:
   push:
-    paths:
-      - '.github/workflows/recovery-push.yml'
+    branches:
+      - main
 
 jobs:
   recovery:
