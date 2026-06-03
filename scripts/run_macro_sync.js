@@ -49,7 +49,7 @@ async function extractTradingView(ticker, timeframe) {
         let executionHalted = false;
         const client = new TradingView.Client();
         const chart = new client.Session.Chart();
-        chart.setMarket(ticker, { timeframe, range: 2000 }); 
+        chart.setMarket(ticker, { timeframe, range: 200 }); 
 
         chart.onUpdate(() => {
             if (executionHalted) return; 
