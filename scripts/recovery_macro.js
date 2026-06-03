@@ -38,9 +38,12 @@ async function runInfinityPush() {
 
                         let sheet = doc.sheetsByTitle[tableName];
                         if (sheet) {
+                            await new Promise(res => setTimeout(res, 1200));
                             await sheet.clear();
+                            await new Promise(res => setTimeout(res, 1200));
                             await sheet.setHeaderRow(headerValues);
                         } else {
+                            await new Promise(res => setTimeout(res, 1200));
                             sheet = await doc.addSheet({ title: tableName, headerValues });
                         }
 
@@ -63,8 +66,8 @@ async function runInfinityPush() {
                         console.log(`    Pushing ${formattedRows.length} rows to Google Sheets...`);
                         const chunkSize = 1000;
                         for (let k = 0; k < formattedRows.length; k += chunkSize) {
-                            await sheet.addRows(formattedRows.slice(k, k + chunkSize));
                             await new Promise(res => setTimeout(res, 1200));
+                            await sheet.addRows(formattedRows.slice(k, k + chunkSize));
                         }
                         console.log(`    ✔ ${tableName} Push Complete.`);
                     } catch (e) {
