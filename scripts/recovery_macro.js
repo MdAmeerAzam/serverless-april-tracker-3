@@ -64,7 +64,7 @@ async function runInfinityPush() {
                         const chunkSize = 1000;
                         for (let k = 0; k < formattedRows.length; k += chunkSize) {
                             await sheet.addRows(formattedRows.slice(k, k + chunkSize));
-                            await new Promise(res => setTimeout(res, 500));
+                            await new Promise(res => setTimeout(res, 1200));
                         }
                         console.log(`    ✔ ${tableName} Push Complete.`);
                     } catch (e) {
