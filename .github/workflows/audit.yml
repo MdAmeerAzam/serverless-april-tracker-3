@@ -14,7 +14,7 @@ jobs:
           cache: 'npm'
       - run: npm ci
       - name: Create credentials
-        run: echo '${{ secrets.GCP_CREDENTIALS }}' > credentials.json
+        run: echo "${{ secrets.GCP_CREDENTIALS }}" > credentials.json
       - name: Run Audit
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
