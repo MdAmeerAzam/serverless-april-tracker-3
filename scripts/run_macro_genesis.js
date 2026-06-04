@@ -104,6 +104,7 @@ async function healDatabase(client, tableName, klines) {
 
     // Supabase Egress Protection: We only UPDATE where sar2 is broken or missing.
     // We use a temporary table architecture to join and selectively update en masse.
+    await client.query('BEGIN');
     await client.query(`
         CREATE TEMP TABLE temp_heal_${tableName} (id text, calc_sar2 numeric) ON COMMIT DROP;
     `);
@@ -120,6 +121,7 @@ async function healDatabase(client, tableName, klines) {
         FROM temp_heal_${tableName} temp
         WHERE ${tableName}.id = temp.id AND ${tableName}.sar2 = 0
     `);
+    await client.query('COMMIT');
 
     console.log(`  ✔ [Healed] ${tableName}: ${rowCount} algorithm deaths restored.`);
 }
