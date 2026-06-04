@@ -14,7 +14,18 @@ const TIMEFRAME_MAP = { daily: '1D', weekly: '1W', monthly: '1M' };
 
 async function run() {
     console.log("[Genesis Engine] Initializing True Macro Math Engine...");
-    const client = await pool.connect();
+    let client;
+    for (let attempts = 0; attempts < 10; attempts++) {
+        try {
+            client = await pool.connect();
+            break;
+        } catch (e) {
+            console.log(`[Supabase] Connection saturated, retrying in 5 seconds... (${e.message})`);
+            await new Promise(res => setTimeout(res, 5000));
+        }
+    }
+    if (!client) throw new Error("Failed to connect to Supabase after 10 attempts.");
+    
     try {
         for (const asset of Object.keys(TICKER_MAP)) {
             for (const market of ['spot', 'futures']) {
