@@ -31,7 +31,7 @@ async function checkTable(client, asset, market, interval) {
             result.errors.push(`Sync Gap: Late by ${gapUnits.toFixed(1)} ${interval.key} candles`);
         }
 
-        let sar2Flatline = true;
+        let sar2GenesisFailed = false;
         let sar1Missing = false;
         let zeroResetViolation = false;
 
@@ -43,7 +43,11 @@ async function checkTable(client, asset, market, interval) {
             const isClosed = (i > 0);
 
             if (Math.abs(s1) < 0.000001) sar1Missing = true;
-            if (Math.abs(s2) > 0.000001) sar2Flatline = false;
+            
+            // SAR 2 Genesis Check: Older closed candles (i > 0) MUST be healed by Genesis
+            if (isClosed && Math.abs(s2) < 0.000001) {
+                sar2GenesisFailed = true;
+            }
 
             // SAR 3 Zero-Reset Rule: on closed candles, if S3 == S1, it MUST be 0
             if (isClosed && Math.abs(s3) > 0.000001 && Math.abs(s3 - s1) < 0.000001) {
@@ -52,7 +56,7 @@ async function checkTable(client, asset, market, interval) {
         }
 
         if (sar1Missing) result.errors.push('Genesis missing (SAR 1 = 0)');
-        if (sar2Flatline) result.errors.push('Algorithm death (SAR 2 flatline)');
+        if (sar2GenesisFailed) result.errors.push('Algorithm death (Genesis failed to heal older SAR 2)');
         if (zeroResetViolation) result.errors.push('Zero-Reset 3 violation (Dirty historical data)');
 
         if (result.errors.length > 0) result.status = 'ISSUE';

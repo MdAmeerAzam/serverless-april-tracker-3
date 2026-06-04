@@ -1,5 +1,7 @@
 const TradingView = require('@mathieuc/tradingview');
 const { PSAR } = require('technicalindicators');
+process.env.DATABASE_URL = "postgresql://postgres.ybnpnpisvalswxyjjfvx:Qzh3nc8S%40UQezjc@aws-1-ap-northeast-1.pooler.supabase.com:6543/postgres?pgbouncer=true";
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 const { pool } = require('../api/db');
 
 const TICKER_MAP = {
@@ -17,7 +19,7 @@ const TIMEFRAME_MAP = {
 };
 
 async function run() {
-    console.log("[Deep Extractor] Initializing Standalone TradingView Handshake...");
+    console.log("[Deep Extractor] Initializing Standalone TradingView Handshake for GENESIS...");
     const client = await pool.connect();
     try {
         for (const asset of Object.keys(TICKER_MAP)) {
@@ -49,7 +51,7 @@ async function extractTradingView(ticker, timeframe) {
         let executionHalted = false;
         const client = new TradingView.Client();
         const chart = new client.Session.Chart();
-        chart.setMarket(ticker, { timeframe, range: 200 }); 
+        chart.setMarket(ticker, { timeframe, range: 50000 }); // GENESIS RANGE
 
         chart.onUpdate(() => {
             if (executionHalted) return; 
@@ -82,48 +84,34 @@ async function extractTradingView(ticker, timeframe) {
 async function processAndSaveData(client, tableName, klines) {
     if (klines.length < 3) return;
 
-    // Fetch existing SAR data for history continuity (Limited to active 200-candle window)
-    const minTimestamp = klines[0].timestamp;
-    const { rows: existingRows } = await client.query(
-        `SELECT timestamp, sar1, sar2, sar3 FROM ${tableName} WHERE timestamp >= $1 ORDER BY timestamp ASC`,
-        [minTimestamp]
-    );
-    const existingSarMap = new Map();
-    existingRows.forEach(r => existingSarMap.set(String(r.timestamp), r));
+    console.log(`    Wiping old DB table: ${tableName}...`);
+    await client.query(`DELETE FROM ${tableName}`);
 
     const highList = klines.map(k => k.high);
     const lowList = klines.map(k => k.low);
 
     const sarResults = new PSAR({ high: highList, low: lowList, step: 0.02, max: 0.2 }).getResult();
+    const sarResults2 = new PSAR({ high: highList, low: lowList, step: 0.01, max: 0.1 }).getResult();
     
     const sarOffset = klines.length - sarResults.length;
+    const sarOffset2 = klines.length - sarResults2.length;
     const formattedValues = [];
+
+    let prevS1 = 0, prevS3 = 0;
 
     for (let i = 0; i < klines.length; i++) {
         const kline = klines[i];
-        const isLiveCandle = (i === klines.length - 1);
         let s1 = 0, s2 = 0, s3 = 0;
 
         if (i >= sarOffset) {
-            const currentCalcSar = sarResults[i - sarOffset]; 
-            const existing = existingSarMap.get(String(kline.timestamp));
-
-            if (existing) {
-                const oldHistoricalS1 = Number(existing.sar1);
-                s1 = oldHistoricalS1 !== 0 ? oldHistoricalS1 : currentCalcSar;
-                s2 = existing.sar2 !== undefined ? Number(existing.sar2) : 0;
-
-                if (isLiveCandle) {
-                    s3 = (Math.abs(currentCalcSar - oldHistoricalS1) > 0.000001 && oldHistoricalS1 !== 0) ? currentCalcSar : 0;
-                } else {
-                    const frozenS3 = Number(existing.sar3);
-                    s3 = (frozenS3 !== 0 && Number(existing.sar1) !== 0 && Math.abs(frozenS3 - Number(existing.sar1)) < 0.000001) ? 0 : frozenS3;
-                }
-            } else {
-                s1 = currentCalcSar;
-                s2 = 0;
-                s3 = 0;
-            }
+            s1 = sarResults[i - sarOffset]; 
+            s2 = sarResults2[i - sarOffset2] || 0;
+            
+            if (prevS1 !== 0 && Math.abs(s1 - prevS1) > 0.000001) { s3 = s1; } else { s3 = prevS3; }
+            if (s3 !== 0 && prevS1 !== 0 && Math.abs(s3 - prevS1) < 0.000001) s3 = 0;
+            
+            prevS1 = s1;
+            prevS3 = s3;
         }
 
         let closePts = 0, closePct = 0;
@@ -143,18 +131,13 @@ async function processAndSaveData(client, tableName, klines) {
         await client.query(`
             INSERT INTO ${tableName} (id, timestamp, open, high, low, closevalue, closepts, closepct, closevol, sar1, sar2, sar3)
             VALUES ${chunk.join(',')}
-            ON CONFLICT (id) DO UPDATE SET
-                open = EXCLUDED.open, high = EXCLUDED.high, low = EXCLUDED.low,
-                closevalue = EXCLUDED.closevalue, closepts = EXCLUDED.closepts,
-                closepct = EXCLUDED.closepct, closevol = EXCLUDED.closevol,
-                sar1 = EXCLUDED.sar1, sar2 = EXCLUDED.sar2, sar3 = EXCLUDED.sar3
         `);
     }
 
     // Auto-heal dirty historical Zero-Reset violations
     await client.query(`UPDATE ${tableName} SET sar3 = 0 WHERE sar3 = sar1 AND sar1 != 0`);
 
-    console.log(`  ✔ [Synced] ${tableName}`);
+    console.log(`  ✔ [Synced] ${tableName} (${klines.length} genesis candles inserted)`);
 }
 
 run();
