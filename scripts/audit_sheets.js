@@ -14,6 +14,22 @@ const INTERVALS = ['daily', 'weekly', 'monthly'];
 async function run() {
     console.log("[End-to-End Audit] Initializing Mathematical Verification...");
     const client = await pool.connect();
+    const dbCounts = {};
+    for (const a of ASSETS) {
+        for (const m of MARKETS) {
+            for (const i of INTERVALS) {
+                const tableName = `${a}_${m}_${i}`;
+                try {
+                    const { rows } = await client.query(`SELECT COUNT(*) FROM ${tableName}`);
+                    dbCounts[tableName] = Number(rows[0].count);
+                } catch(e) {
+                    dbCounts[tableName] = 0;
+                }
+            }
+        }
+    }
+    client.release();
+    await pool.end();
     
     let totalDbCells = 0;
     let totalSheetCells = 0;
@@ -27,8 +43,7 @@ async function run() {
                     const tableName = `${a}_${m}_${i}`;
                     
                     // 1. Get Database Count
-                    const { rows } = await client.query(`SELECT COUNT(*) FROM ${tableName}`);
-                    const dbCount = Number(rows[0].count);
+                    const dbCount = dbCounts[tableName];
                     const dbCells = dbCount * 13; // 13 columns
                     totalDbCells += dbCells;
 
@@ -60,7 +75,9 @@ async function run() {
     } catch (e) {
         console.error("[Audit Failed]:", e.message);
     } finally {
-        client.release();
+        if (client && !client._ending) {
+           try { client.release(); } catch(e){}
+        }
         process.exit(0);
     }
 }
