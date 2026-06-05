@@ -26,9 +26,13 @@ async function checkTable(client, asset, market, interval) {
         const gapMs = now - Number(latest.timestamp);
         const gapUnits = gapMs / (interval.min * 60 * 1000);
 
-        // 1. Sync Gap Check (1.5 candle threshold for Macro)
-        if (gapUnits > 1.5) {
-            result.errors.push(`Sync Gap: Late by ${gapUnits.toFixed(1)} ${interval.key} candles`);
+        // 1. Sync Gap Check — per-interval max lag (hours-based, not candle-count-based)
+        // Daily: alert if > 36h. Weekly: alert if > 60h. Monthly: alert if > 72h.
+        const MAX_LAG_HOURS = { daily: 36, weekly: 60, monthly: 72 };
+        const maxLagMs = (MAX_LAG_HOURS[interval.key] || 36) * 60 * 60 * 1000;
+        const lagHours = (gapMs / (60 * 60 * 1000)).toFixed(1);
+        if (gapMs > maxLagMs) {
+            result.errors.push(`Sync Gap: ${lagHours}h late (max allowed: ${MAX_LAG_HOURS[interval.key] || 36}h for ${interval.key})`);
         }
 
         let sar2GenesisFailed = false;
