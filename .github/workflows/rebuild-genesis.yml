@@ -1,0 +1,21 @@
+name: Run Unified Genesis Rebuild
+
+on:
+  workflow_dispatch:
+
+jobs:
+  genesis:
+    name: Executive Egress-Zero Unified Genesis
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: echo '${{ secrets.GOOGLE_CREDENTIALS_JSON }}' > credentials.json
+      - name: Rebuild Macro Data Perimeter
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: node scripts/unified_genesis.js
