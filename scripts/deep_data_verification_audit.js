@@ -166,6 +166,8 @@ async function runImmaculateAudit() {
         console.log(`   AUDIT COMPLETE | ${totalTablesPerfect}/30 Tables Immaculate | ${totalAnomalies} Anomalies`);
         console.log("=========================================================");
 
+    } catch (e) {
+        console.error("FATAL AUDIT ERROR:", e);
     } finally {
         await pool.end();
         process.exit(0);
