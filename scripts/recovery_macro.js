@@ -23,7 +23,6 @@ async function runInfinityPush() {
 
     const headerValues = ['id', 'timestamp', 'date', 'open', 'high', 'low', 'sar1', 'sar2', 'sar3', 'closeValue', 'closePts', 'closePct', 'closeVol'];
 
-    const clientPG = await pool.connect();
     try {
         for (const a of ASSETS) {
             for (const m of MARKETS) {
@@ -32,7 +31,7 @@ async function runInfinityPush() {
                     console.log(`  Processing ${tableName}...`);
 
                     try {
-                        const { rows } = await clientPG.query(`SELECT * FROM ${tableName} ORDER BY timestamp ASC`);
+                        const { rows } = await pool.query(`SELECT * FROM ${tableName} ORDER BY timestamp ASC`);
                         console.log(`    Retrieved ${rows.length} rows from Cloud DB.`);
                         if (rows.length === 0) continue;
 
@@ -77,7 +76,7 @@ async function runInfinityPush() {
             }
         }
     } finally {
-        clientPG.release();
+        await pool.end();
     }
 
     console.log("[INFINITY SHEET PUSH] Total Reconstruction Complete. Macro Display is now 1:1 with Database.");

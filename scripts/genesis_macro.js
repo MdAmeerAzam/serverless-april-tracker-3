@@ -3,6 +3,7 @@ const { PSAR } = require('technicalindicators');
 process.env.DATABASE_URL = "postgresql://postgres.ybnpnpisvalswxyjjfvx:Qzh3nc8S%40UQezjc@aws-1-ap-northeast-1.pooler.supabase.com:6543/postgres?pgbouncer=true";
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 const { pool } = require('../api/db');
+pool.on('error', () => {}); // Ignore background PgBouncer idle drops
 
 const TICKER_MAP = {
     gold: { spot: 'OANDA:XAUUSD', futures: 'COMEX:GC1!' },
@@ -20,7 +21,6 @@ const TIMEFRAME_MAP = {
 
 async function run() {
     console.log("[Deep Extractor] Initializing Standalone TradingView Handshake for GENESIS...");
-    const client = await pool.connect();
     try {
         for (const asset of Object.keys(TICKER_MAP)) {
             for (const market of ['spot', 'futures']) {
@@ -32,7 +32,14 @@ async function run() {
                     
                     try {
                         const klines = await extractTradingView(rawTicker, tf);
-                        await processAndSaveData(client, tableName, klines);
+                        
+                        const client = await pool.connect();
+                        try {
+                            await processAndSaveData(client, tableName, klines);
+                        } finally {
+                            client.release();
+                        }
+                        
                         await new Promise(res => setTimeout(res, 3000)); // Stealth delay
                     } catch (e) {
                         console.error(`[Failure] ${tableName}:`, e.message);
@@ -41,7 +48,6 @@ async function run() {
             }
         }
     } finally {
-        client.release();
         process.exit(0);
     }
 }

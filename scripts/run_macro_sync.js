@@ -1,6 +1,7 @@
 const TradingView = require('@mathieuc/tradingview');
 const { PSAR } = require('technicalindicators');
 const { pool } = require('../api/db');
+pool.on('error', () => {}); // Ignore background PgBouncer idle drops
 
 const TICKER_MAP = {
     gold: { spot: 'OANDA:XAUUSD', futures: 'COMEX:GC1!' },
@@ -18,7 +19,6 @@ const TIMEFRAME_MAP = {
 
 async function run() {
     console.log("[Deep Extractor] Initializing Standalone TradingView Handshake...");
-    const client = await pool.connect();
     try {
         for (const asset of Object.keys(TICKER_MAP)) {
             for (const market of ['spot', 'futures']) {
@@ -30,7 +30,14 @@ async function run() {
                     
                     try {
                         const klines = await extractTradingView(rawTicker, tf);
-                        await processAndSaveData(client, tableName, klines);
+                        
+                        const client = await pool.connect();
+                        try {
+                            await processAndSaveData(client, tableName, klines);
+                        } finally {
+                            client.release();
+                        }
+                        
                         await new Promise(res => setTimeout(res, 3000)); // Stealth delay
                     } catch (e) {
                         console.error(`[Failure] ${tableName}:`, e.message);
@@ -39,7 +46,6 @@ async function run() {
             }
         }
     } finally {
-        client.release();
         process.exit(0);
     }
 }

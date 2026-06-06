@@ -1,6 +1,7 @@
 const TradingView = require('@mathieuc/tradingview');
 const { PSAR } = require('technicalindicators');
 const { pool } = require('../api/db');
+pool.on('error', () => {}); // Ignore background PgBouncer idle drops
 
 const TICKER_MAP = {
     gold: { spot: 'OANDA:XAUUSD', futures: 'COMEX:GC1!' },
@@ -14,17 +15,6 @@ const TIMEFRAME_MAP = { daily: '1D', weekly: '1W', monthly: '1M' };
 
 async function run() {
     console.log("[Genesis Engine] Initializing True Macro Math Engine...");
-    let client;
-    for (let attempts = 0; attempts < 10; attempts++) {
-        try {
-            client = await pool.connect();
-            break;
-        } catch (e) {
-            console.log(`[Supabase] Connection saturated, retrying in 5 seconds... (${e.message})`);
-            await new Promise(res => setTimeout(res, 5000));
-        }
-    }
-    if (!client) throw new Error("Failed to connect to Supabase after 10 attempts.");
     
     try {
         for (const asset of Object.keys(TICKER_MAP)) {
@@ -37,7 +27,25 @@ async function run() {
                     
                     try {
                         const klines = await extractMaxTradingView(rawTicker, tf);
-                        await healDatabase(client, tableName, klines);
+                        
+                        let client;
+                        for (let attempts = 0; attempts < 10; attempts++) {
+                            try {
+                                client = await pool.connect();
+                                break;
+                            } catch (e) {
+                                console.log(`[Supabase] Connection saturated, retrying in 5 seconds... (${e.message})`);
+                                await new Promise(res => setTimeout(res, 5000));
+                            }
+                        }
+                        if (!client) throw new Error("Failed to connect to Supabase after 10 attempts.");
+                        
+                        try {
+                            await healDatabase(client, tableName, klines);
+                        } finally {
+                            client.release();
+                        }
+                        
                         await new Promise(res => setTimeout(res, 3000));
                     } catch (e) {
                         console.error(`[Failure] ${tableName}:`, e.message);
@@ -46,7 +54,6 @@ async function run() {
             }
         }
     } finally {
-        client.release();
         process.exit(0);
     }
 }
