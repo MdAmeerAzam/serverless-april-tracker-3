@@ -2,13 +2,33 @@ const { Client } = require('pg');
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
 async function initDB() {
-    const client = new Client({ 
-        connectionString: process.env.DATABASE_URL,
-        ssl: { rejectUnauthorized: false }
-    });
+    let connected = false;
+    let retries = 0;
+    let client;
+    
+    while (!connected && retries < 10) {
+        client = new Client({ 
+            connectionString: process.env.DATABASE_URL,
+            ssl: { rejectUnauthorized: false }
+        });
+        client.on('error', () => {});
+        
+        try {
+            await client.connect();
+            connected = true;
+        } catch (e) {
+            retries++;
+            console.log(`[!] PgBouncer Exhausted. Retrying DB connect... (${retries}/10)`);
+            await new Promise(r => setTimeout(r, 3000));
+        }
+    }
+    
+    if (!connected) {
+        console.error("FATAL: Could not connect to Supabase after 10 retries.");
+        process.exit(1);
+    }
     
     try {
-        await client.connect();
         console.log("Connected to Supabase. Creating system_locks table...");
         
         await client.query(`
