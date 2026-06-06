@@ -4,6 +4,7 @@ const { JWT } = require('google-auth-library');
 const TradingView = require('@mathieuc/tradingview');
 const path = require('path');
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+pool.on('error', () => {}); // Catch idle PgBouncer drops
 
 const SPREADSHEET_ID = '1VytsJdr8EnKUXqxdMhvcDMzd9fCQowAPzayMWKKc4rA';
 
