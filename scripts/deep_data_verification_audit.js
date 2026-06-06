@@ -84,8 +84,7 @@ async function runImmaculateAudit() {
     let totalTablesPerfect = 0;
     let totalAnomalies = 0;
 
-    try {
-        console.log("[PHASE 1-4] Absolute Alignment, Checksums, and Continuity Scans");
+    console.log("[PHASE 1-4] Absolute Alignment, Checksums, and Continuity Scans");
         for (const a of ASSETS) {
             for (const m of MARKETS) {
                 for (const i of INTERVALS) {
