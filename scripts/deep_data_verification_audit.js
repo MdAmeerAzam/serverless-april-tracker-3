@@ -83,14 +83,16 @@ async function runImmaculateAudit() {
                 for (const i of INTERVALS) {
                     const tableName = `${a}_${m}_${i.key}`;
                     
-                    // 1. Fetch DB Data (Tightly Scoped)
-                    const pgClient = await pool.connect();
+                    // 1. Fetch DB Data (Tightly Scoped Raw Client)
+                    const { Client } = require('pg');
+                    const pgClient = new Client({ connectionString: process.env.DATABASE_URL });
+                    await pgClient.connect();
                     let dbRows = [];
                     try {
                         const dbRes = await pgClient.query(`SELECT * FROM ${tableName} ORDER BY timestamp ASC`);
                         dbRows = dbRes.rows;
                     } finally {
-                        pgClient.release();
+                        await pgClient.end();
                     }
                     
                     // 2. Fetch Sheet Data
@@ -144,12 +146,14 @@ async function runImmaculateAudit() {
         }
 
         console.log("\n[PHASE 5] TradingView WebSocket Deep Symmetry Verification");
-        const pgClient2 = await pool.connect();
+        const { Client } = require('pg');
+        const pgClient2 = new Client({ connectionString: process.env.DATABASE_URL });
+        await pgClient2.connect();
         let tvAudit;
         try {
             tvAudit = await verifyTradingViewSymmetry(pgClient2);
         } finally {
-            pgClient2.release();
+            await pgClient2.end();
         }
 
         if (tvAudit.error) {
