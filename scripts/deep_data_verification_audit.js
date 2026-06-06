@@ -71,7 +71,6 @@ async function runImmaculateAudit() {
     console.log("=========================================================\n");
 
     const doc = await getDoc();
-    const pgClient = await pool.connect();
     
     let totalTablesPerfect = 0;
     let totalAnomalies = 0;
@@ -83,9 +82,15 @@ async function runImmaculateAudit() {
                 for (const i of INTERVALS) {
                     const tableName = `${a}_${m}_${i.key}`;
                     
-                    // 1. Fetch DB Data
-                    const dbRes = await pgClient.query(`SELECT * FROM ${tableName} ORDER BY timestamp ASC`);
-                    const dbRows = dbRes.rows;
+                    // 1. Fetch DB Data (Tightly Scoped)
+                    const pgClient = await pool.connect();
+                    let dbRows = [];
+                    try {
+                        const dbRes = await pgClient.query(`SELECT * FROM ${tableName} ORDER BY timestamp ASC`);
+                        dbRows = dbRes.rows;
+                    } finally {
+                        pgClient.release();
+                    }
                     
                     // 2. Fetch Sheet Data
                     let sheetRows = [];
@@ -107,11 +112,9 @@ async function runImmaculateAudit() {
                         dbChecksum += Number(r.closevalue);
                         if (idx > 0) {
                             const delta = Number(r.timestamp) - Number(dbRows[idx-1].timestamp);
-                            // Detect if delta is less than the timeframe minimum (overlapping data)
                             if (delta < i.minMs && delta > 0) gapViolations++;
                         }
-                        // Zero Reset Rule
-                        if (idx < dbRows.length - 1) { // closed candles
+                        if (idx < dbRows.length - 1) { 
                             const s1 = Number(r.sar1);
                             const s3 = Number(r.sar3);
                             if (s1 !== 0 && s3 !== 0 && Math.abs(s1 - s3) < 0.000001) ruleViolations++;
@@ -134,13 +137,20 @@ async function runImmaculateAudit() {
                         if (gapViolations > 0) console.log(`      └─ Temporal Gaps Detected: ${gapViolations}`);
                         if (ruleViolations > 0) console.log(`      └─ SAR 3 Math Violations: ${ruleViolations}`);
                     }
-                    await new Promise(res => setTimeout(res, 500)); // Sheets API pacing
+                    await new Promise(res => setTimeout(res, 500)); 
                 }
             }
         }
 
         console.log("\n[PHASE 5] TradingView WebSocket Deep Symmetry Verification");
-        const tvAudit = await verifyTradingViewSymmetry(pgClient);
+        const pgClient2 = await pool.connect();
+        let tvAudit;
+        try {
+            tvAudit = await verifyTradingViewSymmetry(pgClient2);
+        } finally {
+            pgClient2.release();
+        }
+
         if (tvAudit.error) {
             console.log(`  [✖] WebSocket Extraction Timeout`);
         } else {
@@ -157,7 +167,7 @@ async function runImmaculateAudit() {
         console.log("=========================================================");
 
     } finally {
-        pgClient.release();
+        await pool.end();
         process.exit(0);
     }
 }
