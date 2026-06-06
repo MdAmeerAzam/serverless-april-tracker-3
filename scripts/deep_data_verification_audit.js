@@ -85,7 +85,10 @@ async function runImmaculateAudit() {
                     
                     // 1. Fetch DB Data (Tightly Scoped Raw Client)
                     const { Client } = require('pg');
-                    const pgClient = new Client({ connectionString: process.env.DATABASE_URL });
+                    const pgClient = new Client({ 
+                        connectionString: process.env.DATABASE_URL,
+                        ssl: { rejectUnauthorized: false }
+                    });
                     await pgClient.connect();
                     let dbRows = [];
                     try {
@@ -147,7 +150,10 @@ async function runImmaculateAudit() {
 
         console.log("\n[PHASE 5] TradingView WebSocket Deep Symmetry Verification");
         const { Client } = require('pg');
-        const pgClient2 = new Client({ connectionString: process.env.DATABASE_URL });
+        const pgClient2 = new Client({ 
+            connectionString: process.env.DATABASE_URL,
+            ssl: { rejectUnauthorized: false }
+        });
         await pgClient2.connect();
         let tvAudit;
         try {
