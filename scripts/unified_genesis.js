@@ -50,6 +50,20 @@ async function extractTradingView(ticker, timeframe) {
     });
 }
 
+async function extractTradingViewWithBackoff(ticker, timeframe, maxRetries = 3) {
+    let attempt = 0;
+    while (attempt < maxRetries) {
+        try {
+            return await extractTradingView(ticker, timeframe);
+        } catch (e) {
+            attempt++;
+            console.log(`    [TV Warning] Connection failed (${e.message}). Retrying ${attempt}/${maxRetries} in ${attempt * 10}s...`);
+            if (attempt >= maxRetries) throw e;
+            await new Promise(r => setTimeout(r, attempt * 10000));
+        }
+    }
+}
+
 async function runUnifiedGenesis() {
     const acquired = await acquireGlobalLock('MAINTENANCE_LOCK', 'Repo 3 Genesis Rebuild', 180); // 3-hour TTL
     if (!acquired) {
@@ -69,7 +83,7 @@ async function runUnifiedGenesis() {
                 console.log(`\n[Processing] ${tableName} -> ${rawTicker} [${tf}]`);
                 
                 try {
-                    const klines = await extractTradingView(rawTicker, tf);
+                    const klines = await extractTradingViewWithBackoff(rawTicker, tf);
                     if (klines.length < 3) continue;
 
                     // 1. Algorithmic Processing (In-Memory)

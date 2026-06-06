@@ -5,6 +5,7 @@
     "google-auth-library": "^10.6.2",
     "google-spreadsheet": "^5.2.0",
     "pg": "^8.20.0",
+    "pg-cursor": "^2.20.0",
     "technicalindicators": "^3.1.0"
   }
 }

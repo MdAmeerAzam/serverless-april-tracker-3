@@ -36,7 +36,7 @@ async function run() {
                     console.log(`[Connecting] ${tableName} -> ${rawTicker} [${tf}]`);
                     
                     try {
-                        const klines = await extractTradingView(rawTicker, tf);
+                        const klines = await extractTradingViewWithBackoff(rawTicker, tf);
                         
                         const client = await pool.connect();
                         try {
@@ -90,6 +90,20 @@ async function extractTradingView(ticker, timeframe) {
             }
         }, 15000);
     });
+}
+
+async function extractTradingViewWithBackoff(ticker, timeframe, maxRetries = 3) {
+    let attempt = 0;
+    while (attempt < maxRetries) {
+        try {
+            return await extractTradingView(ticker, timeframe);
+        } catch (e) {
+            attempt++;
+            console.log(`    [TV Warning] Connection failed (${e.message}). Retrying ${attempt}/${maxRetries} in ${attempt * 10}s...`);
+            if (attempt >= maxRetries) throw e;
+            await new Promise(r => setTimeout(r, attempt * 10000));
+        }
+    }
 }
 
 async function processAndSaveData(client, tableName, klines) {

@@ -10,6 +10,9 @@ on:
     - cron: '15 */4 * * *'
   workflow_dispatch:
 
+concurrency:
+  group: macro-sync-repo3
+  cancel-in-progress: true
 jobs:
   sync:
     name: Sync TradingView → Supabase

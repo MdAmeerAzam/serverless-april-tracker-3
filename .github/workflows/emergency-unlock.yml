@@ -1,0 +1,20 @@
+name: Emergency Mutex Unlock
+on:
+  workflow_dispatch:
+jobs:
+  unlock:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+      - run: npm install pg
+      - run: |
+          node -e "
+          const { Client } = require('pg');
+          const client = new Client({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
+          client.connect().then(() => client.query('DELETE FROM system_locks').then(() => {
+            console.log('System forcibly unlocked.');
+            process.exit(0);
+          }));"
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}

@@ -1,4 +1,5 @@
 const { pool } = require('../api/db');
+const Cursor = require('pg-cursor');
 const { GoogleSpreadsheet } = require('google-spreadsheet');
 const { JWT } = require('google-auth-library');
 const { acquireGlobalLock, releaseGlobalLock } = require('../api/mutex');
@@ -47,32 +48,17 @@ async function runEradication() {
                 for (const i of INTERVALS) {
                     const tableName = `${a}_${m}_${i.key}`;
                     
-                    // 1. Fetch Pristine DB Data
-                    console.log(`[SYNC] Fetching DB Truth for ${tableName}...`);
+                    // 1. Fetch Pristine DB Data and stream directly to Sheets
+                    console.log(`[SYNC] Streaming DB Truth for ${tableName} (O(1) Memory Engine)...`);
                     const { Client } = require('pg');
-                    let dbRows = [];
                     const pgClient = new Client({ 
                         connectionString: process.env.DATABASE_URL,
                         ssl: { rejectUnauthorized: false }
                     });
                     pgClient.on('error', () => {});
                     await pgClient.connect();
-                    try {
-                        const dbRes = await pgClient.query(`SELECT * FROM ${tableName} ORDER BY timestamp ASC`);
-                        dbRows = dbRes.rows;
-                    } finally {
-                        await pgClient.end().catch(()=>{});
-                    }
                     
-                    // Format for sheets
-                    const sheetRows = dbRows.map(r => ({
-                        id: r.id, timestamp: r.timestamp, date: new Date(Number(r.timestamp)).toISOString(),
-                        open: r.open, high: r.high, low: r.low, 
-                        sar1: r.sar1, sar2: r.sar2, sar3: r.sar3,
-                        closeValue: r.closevalue, closePts: r.closepts, closePct: r.closepct, closeVol: r.closevol
-                    }));
-
-                    // 2. Hard Eradicate Tab
+                    // 2. Hard Eradicate Tab FIRST to prepare for stream
                     let sheet = doc.sheetsByTitle[tableName];
                     if (sheet) {
                         console.log(`    [ERADICATING] Hard-deleting entire ghost worksheet for ${tableName}...`);
@@ -82,15 +68,39 @@ async function runEradication() {
                     console.log(`    [REBUILDING] Creating fresh pristine worksheet...`);
                     sheet = await doc.addSheet({ title: tableName, headerValues: HEADER_VALUES });
                     await new Promise(r => setTimeout(r, 2000));
-
-                    // 3. Batch Injection
-                    const sheetChunk = 1500;
-                    console.log(`    [INJECTING] Pushing ${sheetRows.length} rows to Google Sheets in chunks of ${sheetChunk}...`);
-                    for (let k = 0; k < sheetRows.length; k += sheetChunk) {
-                        await new Promise(res => setTimeout(res, 2000)); // Strict 2s delay
-                        await sheet.addRows(sheetRows.slice(k, k + sheetChunk));
-                        process.stdout.write('.');
+                    
+                    try {
+                        const query = new Cursor(`SELECT * FROM ${tableName} ORDER BY timestamp ASC`);
+                        const cursor = pgClient.query(query);
+                        
+                        let reading = true;
+                        while(reading) {
+                            const rows = await new Promise((resolve, reject) => {
+                                cursor.read(1500, (err, rows) => err ? reject(err) : resolve(rows));
+                            });
+                            
+                            if (rows.length === 0) {
+                                reading = false;
+                                break;
+                            }
+                            
+                            // Format for sheets
+                            const sheetRows = rows.map(r => ({
+                                id: r.id, timestamp: r.timestamp, date: new Date(Number(r.timestamp)).toISOString(),
+                                open: r.open, high: r.high, low: r.low, 
+                                sar1: r.sar1, sar2: r.sar2, sar3: r.sar3,
+                                closeValue: r.closevalue, closePts: r.closepts, closePct: r.closepct, closeVol: r.closevol
+                            }));
+                            
+                            await new Promise(res => setTimeout(res, 2000)); // Strict 2s delay
+                            await sheet.addRows(sheetRows);
+                            process.stdout.write('.');
+                        }
+                    } finally {
+                        await pgClient.end().catch(()=>{});
                     }
+
+
                     console.log(`\n  ✔ ${tableName} Sheets Re-Sync Complete (100% Mathematically Pristine)`);
                 }
             }
