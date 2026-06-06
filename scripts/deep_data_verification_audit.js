@@ -93,6 +93,7 @@ async function runImmaculateAudit() {
                             connectionString: process.env.DATABASE_URL,
                             ssl: { rejectUnauthorized: false }
                         });
+                        pgClient.on('error', () => {}); // Catch async drops
                         try {
                             await pgClient.connect();
                             const dbRes = await pgClient.query(`SELECT * FROM ${tableName} ORDER BY timestamp ASC`);
@@ -169,6 +170,7 @@ async function runImmaculateAudit() {
                 connectionString: process.env.DATABASE_URL,
                 ssl: { rejectUnauthorized: false }
             });
+            pgClient2.on('error', () => {}); // Catch async drops
             try {
                 await pgClient2.connect();
                 tvAudit = await verifyTradingViewSymmetry(pgClient2);
