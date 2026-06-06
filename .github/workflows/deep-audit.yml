@@ -1,0 +1,21 @@
+name: Deep Perimeter Immaculate Audit
+
+on:
+  workflow_dispatch:
+
+jobs:
+  audit:
+    name: Run Mathematical Data Parity Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: echo '${{ secrets.GOOGLE_CREDENTIALS_JSON }}' > credentials.json
+      - name: Execute Immaculate Audit Engine
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: node scripts/deep_data_verification_audit.js
