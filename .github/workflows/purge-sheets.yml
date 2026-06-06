@@ -1,0 +1,16 @@
+name: Purge and Resync Sheets
+on:
+  workflow_dispatch:
+jobs:
+  purge:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      - run: npm install
+      - run: echo '${{ secrets.CREDENTIALS_JSON }}' > credentials.json
+      - run: node scripts/purge_and_resync_sheets.js
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
