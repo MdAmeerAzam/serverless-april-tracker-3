@@ -83,20 +83,30 @@ async function runImmaculateAudit() {
                 for (const i of INTERVALS) {
                     const tableName = `${a}_${m}_${i.key}`;
                     
-                    // 1. Fetch DB Data (Tightly Scoped Raw Client)
+                    // 1. Fetch DB Data (Tightly Scoped Raw Client with Resilience)
                     const { Client } = require('pg');
-                    const pgClient = new Client({ 
-                        connectionString: process.env.DATABASE_URL,
-                        ssl: { rejectUnauthorized: false }
-                    });
-                    await pgClient.connect();
                     let dbRows = [];
-                    try {
-                        const dbRes = await pgClient.query(`SELECT * FROM ${tableName} ORDER BY timestamp ASC`);
-                        dbRows = dbRes.rows;
-                    } finally {
-                        await pgClient.end();
+                    let connected = false;
+                    let retries = 0;
+                    while (!connected && retries < 10) {
+                        const pgClient = new Client({ 
+                            connectionString: process.env.DATABASE_URL,
+                            ssl: { rejectUnauthorized: false }
+                        });
+                        try {
+                            await pgClient.connect();
+                            const dbRes = await pgClient.query(`SELECT * FROM ${tableName} ORDER BY timestamp ASC`);
+                            dbRows = dbRes.rows;
+                            connected = true;
+                        } catch (err) {
+                            retries++;
+                            console.log(`      [!] PgBouncer Exhausted. Retrying DB fetch for ${tableName}... (${retries}/10)`);
+                            await new Promise(r => setTimeout(r, 5000));
+                        } finally {
+                            await pgClient.end().catch(()=>{});
+                        }
                     }
+                    if (!connected) throw new Error("DB Connection Failed after 10 retries");
                     
                     // 2. Fetch Sheet Data
                     let sheetRows = [];
@@ -150,17 +160,28 @@ async function runImmaculateAudit() {
 
         console.log("\n[PHASE 5] TradingView WebSocket Deep Symmetry Verification");
         const { Client } = require('pg');
-        const pgClient2 = new Client({ 
-            connectionString: process.env.DATABASE_URL,
-            ssl: { rejectUnauthorized: false }
-        });
-        await pgClient2.connect();
+        let pgClient2;
+        let tvConnected = false;
+        let tvRetries = 0;
         let tvAudit;
-        try {
-            tvAudit = await verifyTradingViewSymmetry(pgClient2);
-        } finally {
-            await pgClient2.end();
+        while (!tvConnected && tvRetries < 10) {
+            pgClient2 = new Client({ 
+                connectionString: process.env.DATABASE_URL,
+                ssl: { rejectUnauthorized: false }
+            });
+            try {
+                await pgClient2.connect();
+                tvAudit = await verifyTradingViewSymmetry(pgClient2);
+                tvConnected = true;
+            } catch (err) {
+                tvRetries++;
+                console.log(`      [!] PgBouncer Exhausted. Retrying Phase 5 DB connect... (${tvRetries}/10)`);
+                await new Promise(r => setTimeout(r, 5000));
+            } finally {
+                if (pgClient2) await pgClient2.end().catch(()=>{});
+            }
         }
+        if (!tvConnected) throw new Error("TV DB Connection Failed after 10 retries");
 
         if (tvAudit.error) {
             console.log(`  [✖] WebSocket Extraction Timeout`);
