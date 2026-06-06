@@ -3,6 +3,7 @@ const { GoogleSpreadsheet } = require('google-spreadsheet');
 const { JWT } = require('google-auth-library');
 const TradingView = require('@mathieuc/tradingview');
 const path = require('path');
+const { acquireGlobalLock, releaseGlobalLock } = require('../api/mutex');
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 pool.on('error', () => {}); // Catch idle PgBouncer drops
 
@@ -67,9 +68,16 @@ async function verifyTradingViewSymmetry(pgClient) {
 }
 
 async function runImmaculateAudit() {
-    console.log("=========================================================");
-    console.log("   DEEP PERIMETER IMMACULATE AUDIT (REPO 3 - MACRO)");
-    console.log("=========================================================\n");
+    const acquired = await acquireGlobalLock('MAINTENANCE_LOCK', 'Repo 3 Deep Audit', 120); 
+    if (!acquired) {
+        console.log('[FATAL ABORT] Could not acquire Maintenance Lock. Another heavy process is running.');
+        process.exit(0);
+    }
+    
+    try {
+        console.log("=========================================================");
+        console.log("   DEEP PERIMETER IMMACULATE AUDIT (REPO 3 - MACRO)");
+        console.log("=========================================================\n");
 
     const doc = await getDoc();
     
@@ -204,8 +212,15 @@ async function runImmaculateAudit() {
         console.error("FATAL AUDIT ERROR:", e);
     } finally {
         await pool.end();
-        process.exit(0);
     }
 }
 
-runImmaculateAudit();
+(async () => {
+    try {
+        await runImmaculateAudit();
+    } finally {
+        await releaseGlobalLock('MAINTENANCE_LOCK');
+        console.log('[LIFT] Maintenance Lock released.');
+        process.exit(0);
+    }
+})();

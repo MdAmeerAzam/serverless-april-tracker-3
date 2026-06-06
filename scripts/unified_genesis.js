@@ -4,6 +4,7 @@ const { GoogleSpreadsheet } = require('google-spreadsheet');
 const { JWT } = require('google-auth-library');
 const path = require('path');
 const { pool } = require('../api/db');
+const { acquireGlobalLock, releaseGlobalLock } = require('../api/mutex');
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 pool.on('error', () => {}); // Egress/Idle drop protection
 
@@ -50,6 +51,12 @@ async function extractTradingView(ticker, timeframe) {
 }
 
 async function runUnifiedGenesis() {
+    const acquired = await acquireGlobalLock('MAINTENANCE_LOCK', 'Repo 3 Genesis Rebuild', 180); // 3-hour TTL
+    if (!acquired) {
+        console.log('[FATAL ABORT] Could not acquire Maintenance Lock. System locked.');
+        process.exit(0);
+    }
+    
     console.log("[FOOLPROOF EGRESS-ZERO GENESIS] Commencing Total Rebuild...");
     const doc = await getDoc();
 
@@ -172,7 +179,14 @@ async function runUnifiedGenesis() {
     
     await pool.end();
     console.log("[FOOLPROOF EGRESS-ZERO GENESIS] Total Reconstruction Complete.");
-    process.exit(0);
 }
 
-runUnifiedGenesis();
+(async () => {
+    try {
+        await runUnifiedGenesis();
+    } finally {
+        await releaseGlobalLock('MAINTENANCE_LOCK');
+        console.log('[LIFT] Maintenance Lock released.');
+        process.exit(0);
+    }
+})();

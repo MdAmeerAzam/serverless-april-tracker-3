@@ -1,0 +1,45 @@
+   DEEP PERIMETER IMMACULATE AUDIT (REPO 3 - MACRO)
+=========================================================
+
+(node:2343) Warning: Setting the NODE_TLS_REJECT_UNAUTHORIZED environment variable to '0' makes TLS connections and HTTPS requests insecure by disabling certificate verification.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[PHASE 1-4] Absolute Alignment, Checksums, and Continuity Scans
+  [✖] gold_spot_daily FAILED PARITY
+      └─ Checksum Mismatch: DB=11001650.99, Sheet=11001690.89
+  [✖] gold_spot_weekly FAILED PARITY
+      └─ Checksum Mismatch: DB=2257664.18, Sheet=2257777.26
+      └─ Temporal Gaps Detected: 57
+      [!] PgBouncer Exhausted. Retrying DB fetch for gold_spot_monthly... (1/10)
+  [✖] gold_spot_monthly FAILED PARITY
+      └─ Checksum Mismatch: DB=540801.76, Sheet=540915.23
+      └─ Temporal Gaps Detected: 10
+      [!] PgBouncer Exhausted. Retrying DB fetch for gold_futures_daily... (1/10)
+      [!] PgBouncer Exhausted. Retrying DB fetch for gold_futures_daily... (2/10)
+      [!] PgBouncer Exhausted. Retrying DB fetch for gold_futures_daily... (3/10)
+      [!] PgBouncer Exhausted. Retrying DB fetch for gold_futures_daily... (4/10)
+      [!] PgBouncer Exhausted. Retrying DB fetch for gold_futures_daily... (5/10)
+      [!] PgBouncer Exhausted. Retrying DB fetch for gold_futures_daily... (6/10)
+      [!] PgBouncer Exhausted. Retrying DB fetch for gold_futures_daily... (7/10)
+      [!] PgBouncer Exhausted. Retrying DB fetch for gold_futures_daily... (8/10)
+      [!] PgBouncer Exhausted. Retrying DB fetch for gold_futures_daily... (9/10)
+      [!] PgBouncer Exhausted. Retrying DB fetch for gold_futures_daily... (10/10)
+FATAL AUDIT ERROR: Error: DB Connection Failed after 10 retries
+    at runImmaculateAudit (/home/runner/work/serverless-april-tracker-3-Macro/serverless-april-tracker-3-Macro/scripts/deep_data_verification_audit.js:110:43)
+Post job cleanup.
+Cache hit occurred on the primary key node-cache-Linux-x64-npm-302000ef0c70a706bae7a45f0d3eb52344219a653492ce87e39a4ced02118c4d, not saving cache.
+Post job cleanup.
+[command]/usr/bin/git version
+git version 2.54.0
+Temporarily overriding HOME='/home/runner/work/_temp/b0355e7f-6cbe-49e1-a3ff-24cce1f8d7b1' before making global git config changes
+Adding repository directory to the temporary git global config as a safe directory
+[command]/usr/bin/git config --global --add safe.directory /home/runner/work/serverless-april-tracker-3-Macro/serverless-april-tracker-3-Macro
+[command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+[command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+[command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+http.https://github.com/.extraheader
+[command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+[command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+[command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+[command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Cleaning up orphan processes
+##[warning]Node.js 20 actions are deprecated. The following actions are running on Node.js 20 and may not work as expected: actions/checkout@v4, actions/setup-node@v4. Actions will be forced to run with Node.js 24 by default starting June 16th, 2026. Node.js 20 will be removed from the runner on September 16th, 2026. Please check if updated versions of these actions are available that support Node.js 24. To opt into Node.js 24 now, set the FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true environment variable on the runner or in your workflow file. Once Node.js 24 becomes the default, you can temporarily opt out by setting ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

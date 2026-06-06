@@ -1,23 +1,91 @@
+##[endgroup]
+Attempting to download 20...
+Acquiring 20.20.2 - x64 from https://github.com/actions/node-versions/releases/download/20.20.2-23521894959/node-20.20.2-linux-x64.tar.gz
+Extracting ...
+[command]/usr/bin/tar xz --strip 1 --warning=no-unknown-keyword --overwrite -C /home/runner/work/_temp/8804077c-e886-40c9-9de6-1c5ddbf3cb87 -f /home/runner/work/_temp/67523616-0a4b-4c41-b7e0-0552b61c1295
+Adding to the cache ...
+##[group]Environment details
+node: v20.20.2
+npm: 10.8.2
+yarn: 1.22.22
+##[endgroup]
+[command]/opt/hostedtoolcache/node/20.20.2/x64/bin/npm config get cache
+/home/runner/.npm
+Cache hit for: node-cache-Linux-x64-npm-302000ef0c70a706bae7a45f0d3eb52344219a653492ce87e39a4ced02118c4d
+Received 8112671 of 8112671 (100.0%), 7.9 MBs/sec
+Cache Size: ~8 MB (8112671 B)
+[command]/usr/bin/tar -xf /home/runner/work/_temp/6fe4a530-8b40-4bb3-9fd3-fa0d18197c4d/cache.tzst -P -C /home/runner/work/serverless-april-tracker-3-Macro/serverless-april-tracker-3-Macro --use-compress-program unzstd
+Cache restored successfully
+Cache restored from key: node-cache-Linux-x64-npm-302000ef0c70a706bae7a45f0d3eb52344219a653492ce87e39a4ced02118c4d
+##[group]Run npm ci
+[36;1mnpm ci[0m
+shell: /usr/bin/bash -e {0}
+##[endgroup]
+npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+
+added 81 packages, and audited 82 packages in 1s
+
+12 packages are looking for funding
+  run `npm fund` for details
+
+1 high severity vulnerability
+
+To address all issues, run:
+  npm audit fix
+
+Run `npm audit` for details.
+##[group]Run echo '***
+[36;1mecho '***[0m
+[36;1m' > credentials.json[0m
+shell: /usr/bin/bash -e {0}
+##[endgroup]
+##[group]Run node scripts/deep_data_verification_audit.js
+[36;1mnode scripts/deep_data_verification_audit.js[0m
+shell: /usr/bin/bash -e {0}
+env:
+  DATABASE_URL: ***
+##[endgroup]
+=========================================================
    DEEP PERIMETER IMMACULATE AUDIT (REPO 3 - MACRO)
 =========================================================
 
-(node:2340) Warning: Setting the NODE_TLS_REJECT_UNAUTHORIZED environment variable to '0' makes TLS connections and HTTPS requests insecure by disabling certificate verification.
+(node:2281) Warning: Setting the NODE_TLS_REJECT_UNAUTHORIZED environment variable to '0' makes TLS connections and HTTPS requests insecure by disabling certificate verification.
 (Use `node --trace-warnings ...` to show where the warning was created)
 [PHASE 1-4] Absolute Alignment, Checksums, and Continuity Scans
-  [✖] gold_spot_daily FAILED PARITY
-      └─ Checksum Mismatch: DB=11001650.99, Sheet=11001690.89
-  [✖] gold_spot_weekly FAILED PARITY
-      └─ Checksum Mismatch: DB=2257664.18, Sheet=2257777.26
-      └─ Temporal Gaps Detected: 57
-  [✖] gold_spot_monthly FAILED PARITY
-      └─ Checksum Mismatch: DB=540801.76, Sheet=540915.23
-      └─ Temporal Gaps Detected: 10
+FATAL AUDIT ERROR: error: (ESSLREQUIRED) SSL connection is required for user: postgres
+    at parseErrorMessage (/home/runner/work/serverless-april-tracker-3-Macro/serverless-april-tracker-3-Macro/node_modules/pg-protocol/dist/parser.js:305:11)
+    at Parser.handlePacket (/home/runner/work/serverless-april-tracker-3-Macro/serverless-april-tracker-3-Macro/node_modules/pg-protocol/dist/parser.js:143:27)
+    at Parser.parse (/home/runner/work/serverless-april-tracker-3-Macro/serverless-april-tracker-3-Macro/node_modules/pg-protocol/dist/parser.js:37:38)
+    at Socket.<anonymous> (/home/runner/work/serverless-april-tracker-3-Macro/serverless-april-tracker-3-Macro/node_modules/pg-protocol/dist/index.js:11:42)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:191:23) {
+  length: 81,
+  severity: 'FATAL',
+  code: 'XX000',
+  detail: undefined,
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: undefined,
+  line: undefined,
+  routine: undefined
+}
 Post job cleanup.
 Cache hit occurred on the primary key node-cache-Linux-x64-npm-302000ef0c70a706bae7a45f0d3eb52344219a653492ce87e39a4ced02118c4d, not saving cache.
 Post job cleanup.
 [command]/usr/bin/git version
 git version 2.54.0
-Temporarily overriding HOME='/home/runner/work/_temp/bd050a2c-9b4a-4d22-856d-4cfbee8a893a' before making global git config changes
+Temporarily overriding HOME='/home/runner/work/_temp/aeddcd1a-4f2f-46b4-a88e-b97b0331c688' before making global git config changes
 Adding repository directory to the temporary git global config as a safe directory
 [command]/usr/bin/git config --global --add safe.directory /home/runner/work/serverless-april-tracker-3-Macro/serverless-april-tracker-3-Macro
 [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
